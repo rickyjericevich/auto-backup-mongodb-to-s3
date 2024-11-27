@@ -23,8 +23,12 @@ def mongodump_locally(
 
     # read the backed-up docs into memory
     path_to_dump_file = path.join(tmp_dump_folder, database_name, f"{collection_name}.bson")
-    with open(path_to_dump_file, "rb") as file:
-        return [DeleteOne({"_id": doc["_id"]}) for doc in decode_file_iter(file)]
+
+    try:
+        with open(path_to_dump_file, "rb") as file:
+            return [DeleteOne({"_id": doc["_id"]}) for doc in decode_file_iter(file)]
+    except FileNotFoundError:
+        return []
 
 
 def compress_to_tarball(path_to_uncompressed_file_or_folder: str, compressed_filename: str) -> None:
@@ -143,7 +147,11 @@ if __name__ == "__main__":
     parser.add_argument("--aws_access_key", default=getenv("AWS_ACCESS_KEY"))
     parser.add_argument("--aws_secret_key", default=getenv("AWS_SECRET_KEY"))
     parser.add_argument("--tmp_dump_folder", default=getenv("TMP_DUMP_FOLDER", "backup"))
-    parser.add_argument("--log_level", default=getenv("LOG_LEVEL", "INFO"))
+    parser.add_argument(
+        "--log_level",
+        default=getenv("LOG_LEVEL", "INFO"),
+        choices=["NOTSET", "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
+    )
     args = parser.parse_args()
 
     logging.basicConfig(level=args.log_level.upper()) # see https://docs.python.org/3/library/logging.html#levels
